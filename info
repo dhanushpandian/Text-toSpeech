@@ -1,38 +1,35 @@
-import socketio
-import subprocess
-import sys
-import pyttsx3
 
-# Initialize socket.io client
-sio = socketio.Client()
+const io = require('socket.io-client');
+const { exec } = require('child_process');
 
-# Initialize text-to-speech engine
-def text_to_speech(message):
-    engine = pyttsx3.init()
-    engine.say(message)
-    engine.runAndWait()
+// Initialize socket.io client
+const socket = io('http://localhost:3000');
 
-# Socket.io event handlers
-@sio.event
-def connect():
-    print('Connected to Node.js server')
+// Socket.io event handlers
+socket.on('connect', () => {
+    console.log('Connected to Node.js server');
+});
 
-@sio.event
-def transaction(amount):
-    print('Received transaction signal with amount:', amount)
-    try:
-        # Perform text-to-speech
-        text_to_speech(str(amount))
-    except Exception as e:
-        print(f"Error during text-to-speech conversion: {e}")
+socket.on('transaction', (amount) => {
+    console.log('Received transaction signal with amount:', amount);
+    try {
+        // Execute the text-to-speech script using child_process
+        console.log('Calling text-to-speech subprocess...');
+        exec(`python ttl.py ${amount}`, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error calling text-to-speech subprocess: ${error.message}`);
+            } else {
+                console.log('Text-to-speech subprocess completed successfully:', stdout);
+            }
+        });
+    } catch (error) {
+        console.error('Error calling text-to-speech subprocess:', error.message);
+    }
+});
 
-@sio.event
-def disconnect():
-    print('Disconnected from Node.js server')
+socket.on('disconnect', () => {
+    console.log('Disconnected from Node.js server');
+});
 
-if __name__ == "__main__":
-    # Connect to the Node.js server
-    sio.connect('http://localhost:3000')
-
-    # Wait for events
-    sio.wait()
+// Connect to the Node.js server
+socket.connect();
